@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import logging
@@ -48,5 +49,5 @@ async def help(ctx):
 	await author.send(embed=embed)
 
 
-bot.run("NTA1MjQxODc2NTU5OTUzOTMz.W9KdKg.jsHtzR0biOC9UfoIiYPTS2IIGro")
+bot.run(os.environ["DISCORD_BOT_KEY"])
 
