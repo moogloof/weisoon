@@ -1,7 +1,7 @@
-import os
 import discord
 from discord.ext import commands
 import logging
+import os
 
 
 # Logging basic configurations
@@ -42,11 +42,13 @@ async def help(ctx):
 
 	embed = discord.Embed(colour=discord.Colour.orange())
 
-	# Help command
+	# Help command embed content
 	embed.set_author(name="Help")
 	embed.add_field(name="m#hiss", value="Returns hiss", inline=False)
 
+	# Send help messages
 	await author.send(embed=embed)
+	await ctx.send("```\nYo I got you dog\n```")
 
 
 bot.run(os.environ["DISCORD_BOT_KEY"])
