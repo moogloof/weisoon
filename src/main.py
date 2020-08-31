@@ -39,6 +39,7 @@ async def hiss_error(ctx, error):
 
 # Tasks command
 @bot.command()
+@commands.has_role(489233920672399371)
 async def task(ctx, action, *args):
 	msg_str = "```\n"
 
