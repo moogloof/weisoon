@@ -58,7 +58,7 @@ async def task(ctx, action, *args):
 				task = pickle.load(f)
 
 				# Add task to list
-				msg_str += "	{} :: {}\n".format(task.name, task.status)
+				msg_str += "	{} :: {}\n".format(task.title, task.status)
 
 	# Add task
 	if action == "add":
@@ -78,22 +78,39 @@ async def task(ctx, action, *args):
 		task = tasks.Task.load(args[0])
 
 		# Display task info
-		msg_str += "Task name: {}\n".format(task.name)
-		msg_str += "Task description: {}\n".format(task.description)
+		msg_str += "Task name: {}\n\n".format(task.title)
+		msg_str += "Task description: {}\n\n".format(task.description)
 		msg_str += "Task status: {}\n".format(task.status)
 
 	# Remove task
 	if action == "remove":
 		# Try removing task of name
-		try:
-			taskname = "{}.task".format(args[0])
-			taskpath = os.path.join("tasks", taskname)
-			os.remove(taskpath)
+		taskname = "{}.task".format(args[0])
+		taskpath = os.path.join("tasks", taskname)
+		os.remove(taskpath)
 
-			# Display success
-			msg_str += "Successfully removed task.\n"
-		except IndexError:
+		# Display success
+		msg_str += "Successfully removed task.\n"
+
+	# Edit task
+	if action == "edit":
+		# Try editting task with args
+		# Get task
+		task = tasks.Task.load(args[0])
+
+		# Get edit field
+		field = args[1]
+
+		# Change field if found
+		if hasattr(task, field):
+			setattr(task, field, args[2])
+
+			task.save()
+		else:
 			raise commands.UserInputError
+
+		# Display success
+		msg_str += "Successfully editted {} of task.\n".format(field)
 
 	# Send message string
 	msg_str += "```"
@@ -102,7 +119,7 @@ async def task(ctx, action, *args):
 # Task command error
 @task.error
 async def task_error(ctx, error):
-	if isinstance(error, commands.UserInputError):
+	if isinstance(error, commands.UserInputError) or isinstance(error, IndexError):
 		# Send correct usages
 		await ctx.send("""
 ```
@@ -112,6 +129,7 @@ m#task list
 m#task add <title> <description|NONE>
 m#task view <title>
 m#task remove <title>
+m#task edit <title> <FIELD:title|description|status> <string>
 ```
 """)
 	else:

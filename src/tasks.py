@@ -10,14 +10,14 @@ UNDER_REVIEW = "under review"
 
 # Task class
 class Task:
-	def __init__(self, name, description=None, status=ACTIVE):
+	def __init__(self, title, description=None, status=ACTIVE):
 		self.status = status
-		self.name = name
+		self.title = title
 		self.description = description
 
 	def save(self):
 		# Get filename and path
-		filename = "{}.task".format(self.name)
+		filename = "{}.task".format(self.title)
 		filepath = os.path.join("tasks", filename)
 
 		# Dump task in file
@@ -25,9 +25,9 @@ class Task:
 			pickle.dump(self, f)
 
 	@staticmethod
-	def load(name):
+	def load(title):
 		# Load task from name
-		filename = "{}.task".format(name)
+		filename = "{}.task".format(title)
 		filepath = os.path.join("tasks", filename)
 
 		with open(filepath, "rb") as f:
