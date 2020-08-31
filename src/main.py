@@ -82,6 +82,19 @@ async def task(ctx, action, *args):
 		msg_str += "Task description: {}\n".format(task.description)
 		msg_str += "Task status: {}\n".format(task.status)
 
+	# Remove task
+	if action == "remove":
+		# Try removing task of name
+		try:
+			taskname = "{}.task".format(args[0])
+			taskpath = os.path.join("tasks", taskname)
+			os.remove(taskpath)
+
+			# Display success
+			msg_str += "Successfully removed task.\n"
+		except IndexError:
+			raise commands.UserInputError
+
 	# Send message string
 	msg_str += "```"
 	await ctx.send(msg_str)
@@ -98,6 +111,7 @@ Usages:
 m#task list
 m#task add <title> <description|NONE>
 m#task view <title>
+m#task remove <title>
 ```
 """)
 	else:
