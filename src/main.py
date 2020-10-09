@@ -1,6 +1,7 @@
-import tasks
 import discord
 from discord.ext import commands
+import numpy as np
+import matplotlib.pyplot as plt
 import logging
 import os
 import pickle
@@ -14,9 +15,12 @@ logging.basicConfig(format=FORMAT, level=LEVEL)
 # Disable info and debug logging from discord
 logging.getLogger("discord").setLevel(logging.WARNING)
 
+# Pyplot configs
+plt.ylim(0, 1)
+
 
 # Wei Soon client
-bot = commands.Bot(command_prefix="m#")
+bot = commands.Bot(command_prefix="ws ")
 bot.remove_command("help")
 
 # Hiss command
@@ -34,132 +38,77 @@ async def hiss(ctx, length: int=100):
 async def hiss_error(ctx, error):
 	if isinstance(error, commands.UserInputError):
 		# Send correct usage of command
-		await ctx.send("```\nUsage: m!hiss <int|NONE>\n```")
-
-
-# Tasks command
-@bot.command()
-@commands.has_any_role(489233920672399371, 733856838243582053)
-async def task(ctx, action, *args):
-	msg_str = "```\n"
-
-	# List tasks
-	if action == "list":
-		# Task list string
-		msg_str += "Tasks:\n\n"
-
-		# List all tasknames
-		for taskname in os.listdir("tasks"):
-			# Get task path
-			taskpath = os.path.join("tasks", taskname)
-
-			with open(taskpath, "rb") as f:
-				# Load task
-				task = pickle.load(f)
-
-				# Add task to list
-				msg_str += "	{} :: {}\n".format(task.title, task.status)
-
-	# Add task
-	if action == "add":
-		# Create task
-		task = tasks.Task(args[0])
-
-		if len(args) > 1:
-			task.description = args[1]
-
-		task.save()
-
-		msg_str += "Successfully created task.\n"
-
-	# View task detail
-	if action == "view":
-		# Get task
-		task = tasks.Task.load(args[0])
-
-		# Display task info
-		msg_str += "Task name: {}\n\n".format(task.title)
-		msg_str += "Task description: {}\n\n".format(task.description)
-		msg_str += "Task status: {}\n".format(task.status)
-
-	# Remove task
-	if action == "remove":
-		# Try removing task of name
-		taskname = "{}.task".format(args[0])
-		taskpath = os.path.join("tasks", taskname)
-		os.remove(taskpath)
-
-		# Display success
-		msg_str += "Successfully removed task.\n"
-
-	# Edit task
-	if action == "edit":
-		# Try editting task with args
-		# Get task
-		task = tasks.Task.load(args[0])
-
-		# Get edit field
-		field = args[1]
-
-		# Change field if found
-		if hasattr(task, field):
-			setattr(task, field, args[2])
-
-			task.save()
-		else:
-			raise commands.UserInputError
-
-		# Display success
-		msg_str += "Successfully editted {} of task.\n".format(field)
-
-	# Send message string
-	msg_str += "```"
-	await ctx.send(msg_str)
-
-# Task command error
-@task.error
-async def task_error(ctx, error):
-	if isinstance(error, commands.UserInputError) or isinstance(error, IndexError):
-		# Send correct usages
-		await ctx.send("""
-```
-Usages:
-
-m#task list
-m#task add <title> <description|NONE>
-m#task view <title>
-m#task remove <title>
-m#task edit <title> <FIELD:title|description|status> <string>
-```
-""")
+		await ctx.send("```\nUsage: ws hiss <length|NONE>\n```")
 	else:
-		await ctx.send("```\nError: {}\n```".format(error))
+		# Send debug message
+		await ctx.send("```\nDebug:\n{}\n```".format(error))
 
 
-# Help command
+# Py command
+@bot.command()
+async def py(ctx, *args):
+	cmd = " ".join(args)
+
+	try:
+		output = eval(cmd)
+	except Exception as e:
+		output = e
+	finally:
+		await ctx.send("```\n{}\n```".format(output))
+
+# Py command error
+@py.error
+async def py_error(ctx, error):
+	# Send debug message
+	await ctx.send("```\nDebug:\n{}\n```".format(error))
+
+
+# Big command
+@bot.command()
+async def big(ctx, flips: int=1000):
+	total_sims = flips
+	sims = np.array([np.random.binomial(i, 0.5)/i for i in range(1, total_sims)])
+
+	plt.plot(np.arange(1, total_sims), sims, "-", scaley=False)
+	plt.xlabel("Flips")
+	plt.ylabel("Heads %")
+	plt.savefig("graph.png")
+
+	graph = discord.File("graph.png")
+	sim_graph = discord.Embed(title="Law of Large Numbers")
+
+	await ctx.send(embed=sim_graph, file=graph)
+
+	os.remove("graph.png")
+	plt.clf()
+
+# Big command error
+@big.error
+async def big_error(ctx, error):
+	if isinstance(error, commands.UserInputError):
+		await ctx.send("```\nUsage: ws big <flips|NONE>\n```")
+	else:
+		# Send debug message
+		await ctx.send("```\nDebug:\n{}\n```".format(error))
+
+
+# Help
 @bot.command()
 async def help(ctx):
 	author = ctx.message.author
 
 	# Help command embed content
-	help_msg = """
-```
-Help:
+	notif_msg = discord.Embed(title="I got you my guy")
+	help_msg = discord.Embed(title="Help")
 
-  Miscellaneous -
-
-    m#hiss - Hisses
-
-
-  Projects -
-
-    m#tasks - Manage tasks
-```
-"""
+	help_msg.add_field(name="misc", value="hiss")
+	help_msg.add_field(name="programming", value="py")
+	help_msg.add_field(name="ml", value="big")
+	help_msg.set_footer(text="Got that punk?")
 
 	# Send help messages
-	await author.send(help_msg)
-	await ctx.send("```\nYo I got you dog\n```")
+	await author.send(embed=help_msg)
+	await ctx.send(embed=notif_msg)
 
 
 bot.run(os.environ["DISCORD_BOT_KEY"])
