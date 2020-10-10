@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 import numpy as np
 import matplotlib.pyplot as plt
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import requests
 import logging
 import os
 import pickle
@@ -44,6 +47,8 @@ async def hiss_error(ctx, error):
 		await ctx.send("```\nDebug:\n{}\n```".format(error))
 
 
+# TODO: Fix py command to make more secure
+"""
 # Py command
 @bot.command()
 async def py(ctx, *args):
@@ -64,6 +69,7 @@ async def py(ctx, *args):
 async def py_error(ctx, error):
 	# Send debug message
 	await ctx.send("```\nDebug:\n{}\n```".format(error))
+"""
 
 
 # Big command
@@ -95,6 +101,58 @@ async def big_error(ctx, error):
 	if isinstance(error, commands.UserInputError):
 		# Send correct usage of command
 		await ctx.send("```\nUsage: ws big <flips|NONE>\n```")
+	else:
+		# Send debug message
+		await ctx.send("```\nDebug:\n{}\n```".format(error))
+
+
+# UCI command
+@bot.command()
+async def uci(ctx, *args):
+	# Get uci dataset
+	name = " ".join(args)
+	root = "https://archive.ics.uci.edu/ml/datasets/stuff"
+	url = urljoin(root, name)
+
+	# Clean url
+	url = url.replace(" ", "+")
+
+	# Request dataset page
+	r = requests.get(url)
+
+	# Check if dataset exists
+	if r.status_code == 404:
+		# Send does not exist message
+		resp_msg = discord.Embed(title="There is no {} dataset".format(name))
+	else:
+		# Dataset info
+		resp_msg = discord.Embed(title=name, url=url)
+
+		# Crawl dataset site
+		soup = BeautifulSoup(r.text, "html.parser")
+		table = soup.find_all("table")[2]
+
+		img = table.find_all("img")
+
+		if len(img) > 0:
+			img = img[0]
+			img = urljoin(root, img["src"])
+
+			# Set image of dataset
+			resp_msg.set_image(url=img)
+
+		# Dataset abstract
+		resp_msg.description = table.find_all("p", {"class": "normal"})[0].text
+
+	# Send response
+	await ctx.send(embed=resp_msg)
+
+# UCI command error
+@uci.error
+async def uci_error(ctx, error):
+	if isinstance(error, commands.UserInputError):
+		# Send correct usage of command
+		await ctx.send("```\nUsage: ws uci <name>\n```")
 	else:
 		# Send debug message
 		await ctx.send("```\nDebug:\n{}\n```".format(error))
