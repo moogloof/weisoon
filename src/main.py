@@ -144,6 +144,13 @@ async def uci(ctx, *args):
 		# Dataset abstract
 		resp_msg.description = table.find_all("p", {"class": "normal"})[0].text
 
+		# Dataset metadata
+		meta_table = soup.find("table", {"cellpadding": 6})
+		meta_slots = iter(meta_table.find_all("td"))
+
+		for slot in meta_slots:
+			resp_msg.add_field(name=slot.text, value=next(meta_slots).text)
+
 	# Send response
 	await ctx.send(embed=resp_msg)
 
