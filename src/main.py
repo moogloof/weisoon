@@ -123,7 +123,7 @@ async def uci(ctx, *args):
 	# Check if dataset exists
 	if r.status_code == 404:
 		# Send does not exist message
-		resp_msg = discord.Embed(title="There is no {} dataset".format(name))
+		resp_msg = discord.Embed(title="This dataset does not exist.")
 	else:
 		# Dataset info
 		resp_msg = discord.Embed(title=name, url=url)
