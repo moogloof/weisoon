@@ -1,13 +1,13 @@
+from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
-import numpy as np
-import matplotlib.pyplot as plt
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
-import requests
 import logging
+import matplotlib.pyplot as plt
+import numpy as np
 import os
-import pickle
+import requests
+from urllib.parse import urljoin, urlparse
+import search
 
 
 # Logging basic configurations
@@ -112,27 +112,32 @@ async def uci(ctx, *args):
 	# Get uci dataset
 	name = " ".join(args)
 	root = "https://archive.ics.uci.edu/ml/datasets/stuff"
-	url = urljoin(root, name)
+	url = "https://archive.ics.uci.edu/ml/datasets.php"
 
-	# Clean url
-	url = url.replace(" ", "+")
-
-	# Request dataset page
+	# Request datasets page
 	r = requests.get(url)
 
-	# Check if dataset exists
-	if r.status_code == 404:
-		# Send does not exist message
-		resp_msg = discord.Embed(title="This dataset does not exist.")
-	else:
-		# Dataset info
-		resp_msg = discord.Embed(title=name, url=url)
+	# Get total query
+	soup = BeautifulSoup(r.text, "html.parser")
+	table = soup.find("table", {"cellpadding": 5})
+	rows = table.find_all("tr", recursive=False)[1:]
+	query = (row.find_all("td")[0].find("p", {"class": "normal"}).text for row in rows)
+
+	# Search for dataset
+	search_results = search.search(name, query)
+
+	if len(search_results) > 0:
+		# Dataset embed
+		resp_msg = discord.Embed(title=search_results[0], url=url)
+
+		# Request dataset page
+		r_data = requests.get(urljoin(root, search_results[0]))
 
 		# Crawl dataset site
-		soup = BeautifulSoup(r.text, "html.parser")
-		table = soup.find_all("table")[2]
+		dataset_soup = BeautifulSoup(r_data.text, "html.parser")
+		data_table = dataset_soup.find_all("table")[2]
 
-		img = table.find_all("img")
+		img = data_table.find_all("img")
 
 		if len(img) > 0:
 			img = img[0]
@@ -142,14 +147,16 @@ async def uci(ctx, *args):
 			resp_msg.set_image(url=img)
 
 		# Dataset abstract
-		resp_msg.description = table.find_all("p", {"class": "normal"})[0].text
+		resp_msg.description = data_table.find_all("p", {"class": "normal"})[0].text
 
 		# Dataset metadata
-		meta_table = soup.find("table", {"cellpadding": 6})
+		meta_table = dataset_soup.find("table", {"cellpadding": 6})
 		meta_slots = iter(meta_table.find_all("td"))
 
 		for slot in meta_slots:
 			resp_msg.add_field(name=slot.text, value=next(meta_slots).text)
+	else:
+		resp_msg = discord.Embed(title="Nothing found.")
 
 	# Send response
 	await ctx.send(embed=resp_msg)
